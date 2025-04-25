@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+      
+  db:
+    image: postgres:13
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      db: 
+        condition: service_healthy
+    env_file:
+      - .env
+
+volumes:
+  redis-data:
+  pgdata:
